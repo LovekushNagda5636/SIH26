@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>H₂S Exposure Monitoring Dashboard | MRPL Safety</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ==================== LOGIN PAGE ==================== -->
+<div id="loginPage" class="login-wrapper">
+  <div class="login-bg-shapes">
+    <div class="login-shape s1"></div>
+    <div class="login-shape s2"></div>
+    <div class="login-shape s3"></div>
+  </div>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">H₂S</div>
+      <h1>SafeTrack Pro</h1>
+      <p>Passive Colorimetric H₂S Exposure Monitoring</p>
+      <span class="company-badge">🏢 MRPL Safety System</span>
+    </div>
+    <div class="role-tabs">
+      <button class="role-tab active" onclick="switchLoginRole('worker')" id="tab-worker">👷 Worker Login</button>
+      <button class="role-tab" onclick="switchLoginRole('admin')" id="tab-admin">🛡️ Safety Officer</button>
+    </div>
+    <form onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label id="loginIdLabel">Worker ID</label>
+        <input type="text" id="loginId" placeholder="e.g. W101" required autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-eye-wrap">
+          <input type="password" id="loginPass" placeholder="Enter password" required />
+          <button type="button" class="eye-btn" onclick="togglePasswordVisibility()">👁</button>
+        </div>
+      </div>
+      <div class="demo-hint" id="demoHint">
+        <strong>Demo:</strong> W101 / pass123 &nbsp;|&nbsp; W102 / pass123
+      </div>
+      <button type="submit" class="btn-login">
+        <span id="loginBtnText">Sign In</span>
+      </button>
+    </form>
+    <div id="loginError" class="login-error"></div>
+    <div class="login-footer">
+      <small>⚠ Provides <strong>estimated</strong> cumulative H₂S exposure data only.<br>
+      Does not replace certified real-time H₂S safety detectors.</small>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MAIN APP ==================== -->
+<div id="appShell" class="app-shell hidden">
+
+  <!-- SIDEBAR OVERLAY (mobile) -->
+  <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebarMobile()"></div>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">H₂S</div>
+      <div class="brand-text">
+        <span class="brand-name">SafeTrack Pro</span>
+        <span class="brand-sub">MRPL Exposure Monitor</span>
+      </div>
+      <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    </div>
+
+    <!-- Worker Sidebar -->
+    <nav id="workerNav" class="sidebar-nav hidden">
+      <div class="nav-section-label">MAIN</div>
+      <a href="#" class="nav-item active" onclick="showPage('workerDashboard',this)"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+      <a href="#" class="nav-item" onclick="showPage('workerScan',this)"><span class="nav-icon">📷</span><span class="nav-label">Scan Strip</span></a>
+      <a href="#" class="nav-item" onclick="showPage('workerHistory',this)"><span class="nav-icon">📋</span><span class="nav-label">My History</span></a>
+      <a href="#" class="nav-item" onclick="showPage('workerProfile',this)"><span class="nav-icon">👤</span><span class="nav-label">My Profile</span></a>
+      <div class="nav-divider"></div>
+      <a href="#" class="nav-item nav-logout" onclick="logout()"><span class="nav-icon">🚪</span><span class="nav-label">Logout</span></a>
+    </nav>
+
+    <!-- Admin Sidebar -->
+    <nav id="adminNav" class="sidebar-nav hidden">
+      <div class="nav-section-label">MONITORING</div>
+      <a href="#" class="nav-item active" onclick="showPage('adminDashboard',this)" id="navDashboard"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+      <a href="#" class="nav-item" onclick="showPage('adminWorkers',this)" id="navWorkers"><span class="nav-icon">👷</span><span class="nav-label">Workers</span></a>
+      <a href="#" class="nav-item" onclick="showPage('adminIndustries',this)" id="navIndustries"><span class="nav-icon">🏭</span><span class="nav-label">Industries / Units</span></a>
+      <a href="#" class="nav-item" onclick="showPage('adminAreas',this)" id="navAreas"><span class="nav-icon">📍</span><span class="nav-label">Work Areas</span></a>
+      <a href="#" class="nav-item" onclick="showPage('adminExposure',this)" id="navExposure"><span class="nav-icon">🔬</span><span class="nav-label">Exposure Monitoring</span></a>
+      <div class="nav-section-label">ANALYTICS</div>
+      <a href="#" class="nav-item" onclick="showPage('adminAnalytics',this)" id="navAnalytics"><span class="nav-icon">📊</span><span class="nav-label">Analytics</span></a>
+      <a href="#" class="nav-item" onclick="showPage('adminAlerts',this)" id="navAlerts">
+        <span class="nav-icon">⚠️</span><span class="nav-label">Alerts</span>
+        <span class="nav-badge" id="sidebarAlertCount">0</span>
+      </a>
+      <a href="#" class="nav-item" onclick="showPage('adminReports',this)" id="navReports"><span class="nav-icon">📄</span><span class="nav-label">Reports</span></a>
+      <div class="nav-section-label">SYSTEM</div>
+      <a href="#" class="nav-item" onclick="showPage('adminSettings',this)" id="navSettings"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a>
+      <div class="nav-divider"></div>
+      <a href="#" class="nav-item nav-logout" onclick="logout()"><span class="nav-icon">🚪</span><span class="nav-label">Logout</span></a>
+    </nav>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="topbar-breadcrumb">
+          <span class="topbar-company-sm">MRPL</span>
+          <span class="breadcrumb-sep">›</span>
+          <div id="pageTitle" class="page-title">Dashboard</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-date-time">
+          <div class="topbar-date" id="topbarDate"></div>
+          <div class="topbar-time" id="topbarTime"></div>
+        </div>
+        <div class="topbar-user" id="topbarUser"></div>
+        <div class="alert-badge-wrap" id="alertBadge" onclick="showPage('adminAlerts')">
+          <button class="alert-btn">
+            <span class="alert-bell">🔔</span>
+            <span class="badge-count" id="alertCount">0</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- PAGE CONTAINER -->
+    <div class="page-container">
+
+      <!-- ===== WORKER PAGES ===== -->
+
+      <!-- Worker Dashboard -->
+      <div id="workerDashboard" class="page">
+        <div class="page-header">
+          <div>
+            <h2>My Dashboard</h2>
+            <p>Your H₂S exposure summary · <span id="workerDashDate"></span></p>
+          </div>
+          <button class="btn-primary" onclick="showPage('workerScan')">📷 Scan Strip Now</button>
+        </div>
+        <div id="workerInfoCards" class="kpi-grid"></div>
+        <div class="grid-2 mt-16">
+          <div class="card">
+            <div class="card-header"><h3>📈 My Exposure Trend (Last 14 Days)</h3></div>
+            <canvas id="workerTrendChart" height="200"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>🕐 Recent Readings</h3></div>
+            <div id="workerRecentReadings"></div>
+          </div>
+        </div>
+        <div class="card mt-16">
+          <div class="card-header"><h3>📋 Shift-wise Summary</h3></div>
+          <div id="workerShiftHistory"></div>
+        </div>
+        <div class="disclaimer-box mt-16">
+          ⚠ All values are <strong>estimated cumulative H₂S exposure</strong> from colorimetric strip analysis. This is a prototype research tool and does NOT replace certified real-time H₂S detectors.
+        </div>
+      </div>
+
+      <!-- Worker Scan -->
+      <div id="workerScan" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h2>📷 Scan H₂S Colorimetric Strip</h2>
+            <p>Use smartphone camera to scan your wristband dosimeter strip</p>
+          </div>
+        </div>
+        <div class="scan-container">
+          <div class="card scan-card">
+            <div class="scan-steps">
+              <div class="step active" id="step1"><div class="step-num">1</div><div class="step-label">Position Strip</div></div>
+              <div class="step-line"></div>
+              <div class="step" id="step2"><div class="step-num">2</div><div class="step-label">Capture</div></div>
+              <div class="step-line"></div>
+              <div class="step" id="step3"><div class="step-num">3</div><div class="step-label">Processing</div></div>
+              <div class="step-line"></div>
+              <div class="step" id="step4"><div class="step-num">4</div><div class="step-label">Result</div></div>
+            </div>
+            <div class="scan-area" id="scanArea">
+              <div class="scan-placeholder">
+                <div class="scan-icon">📷</div>
+                <p>Align colorimetric strip within frame</p>
+                <small>Ensure good lighting · Hold camera steady</small>
+              </div>
+              <video id="cameraFeed" class="hidden" autoplay playsinline></video>
+              <canvas id="scanCanvas" class="hidden"></canvas>
+            </div>
+            <div class="scan-color-ref">
+              <p style="font-weight:700;font-size:12px;color:var(--primary);margin-bottom:8px">🎨 Color Reference Scale</p>
+              <div class="color-scale">
+                <div class="color-swatch" style="background:#f0f9f0;border-color:#c8e6c9"><span>Unchanged</span><small>Normal &lt;5 ppm·hr</small></div>
+                <div class="color-swatch" style="background:#c8e6c9;border-color:#a5d6a7"><span>Light Green</span><small>Normal 5–8 ppm·hr</small></div>
+                <div class="color-swatch" style="background:#81c784;border-color:#66bb6a"><span>Med. Green</span><small>Elevated 8–12 ppm·hr</small></div>
+                <div class="color-swatch" style="background:#388e3c;border-color:#2e7d32;color:#fff"><span>Dark Green</span><small>High &gt;12 ppm·hr</small></div>
+              </div>
+            </div>
+            <div class="scan-actions">
+              <button class="btn-primary" onclick="startCamera()" id="btnCamera">📷 Open Camera</button>
+              <button class="btn-secondary" onclick="simulateScan()" id="btnSimulate">🔬 Simulate Scan (Demo)</button>
+              <label class="btn-secondary" style="cursor:pointer">
+                📁 Upload Image
+                <input type="file" accept="image/*" onchange="handleImageUpload(event)" style="display:none">
+              </label>
+            </div>
+            <div id="scanResult" class="scan-result hidden"></div>
+          </div>
+          <div class="card" style="flex:1;min-width:220px">
+            <div class="card-header"><h3>🔄 Data Flow</h3></div>
+            <div class="data-flow">
+              <div class="flow-step">🟡 H₂S Gas Exposure</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">💛 Colorimetric Wristband Strip Darkens</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">📷 Smartphone Camera Scan</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">🔬 Colour/Image Processing (AI)</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">📈 Estimated Cumulative Exposure (ppm·hr)</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">💾 Worker ID + Shift + Area + Date/Time</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">☁️ Backend Database</div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-step">📊 Safety Dashboard → Risk Assessment</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Worker History -->
+      <div id="workerHistory" class="page hidden">
+        <div class="page-header">
+          <h2>📋 My Exposure History</h2>
+          <p>Personal H₂S exposure records across all shifts</p>
+        </div>
+        <div class="card">
+          <div class="filter-row">
+            <select id="workerHistoryShift" onchange="renderWorkerHistory()">
+              <option value="">All Shifts</option>
+              <option>Morning</option><option>Evening</option><option>Night</option>
+            </select>
+            <select id="workerHistoryStatus" onchange="renderWorkerHistory()">
+              <option value="">All Status</option>
+              <option>Normal</option><option>Elevated</option><option>High</option>
+            </select>
+            <input type="date" id="workerHistoryFrom" onchange="renderWorkerHistory()" />
+            <input type="date" id="workerHistoryTo" onchange="renderWorkerHistory()" />
+            <button class="btn-secondary" onclick="clearWorkerHistoryFilters()">✕ Clear</button>
+          </div>
+        </div>
+        <div class="card mt-16">
+          <div id="workerHistoryTable"></div>
+        </div>
+      </div>
+
+      <!-- Worker Profile -->
+      <div id="workerProfile" class="page hidden">
+        <div class="page-header"><h2>👤 My Profile</h2></div>
+        <div id="workerProfileContent"></div>
+      </div>
+
+      <!-- ===== ADMIN PAGES ===== -->
+
+      <!-- ============================================================
+           ADMIN DASHBOARD — FULLY INTERACTIVE CENTRAL DASHBOARD
+           ============================================================ -->
+      <div id="adminDashboard" class="page hidden">
+
+        <!-- Page header -->
+        <div class="page-header dash-header">
+          <div>
+            <h2>Safety Officer Dashboard</h2>
+            <p id="dashSubtitle">MRPL · H₂S Exposure Overview · <span id="dashDate"></span></p>
+          </div>
+          <div class="dash-header-actions">
+            <span class="prototype-badge">⚠ Prototype — Estimated Data</span>
+            <button class="btn-primary" onclick="showPage('adminReports')">📄 Generate Report</button>
+          </div>
+        </div>
+
+        <!-- ══ CASCADE FILTER PANEL ══ -->
+        <div id="dashFilterPanel" class="dash-filter-card"></div>
+
+        <!-- 1. KPI CARDS — update on every filter change -->
+        <div class="kpi-grid kpi-grid-6 mt-16" id="adminKPIs"></div>
+
+        <!-- 2. AREA MONITORING CARDS -->
+        <div class="section-header mt-20">
+          <h3>📍 Area-wise Monitoring</h3>
+          <p>Click any area card to open full area detail page</p>
+        </div>
+        <div class="dash-area-grid" id="dashAreaGrid"></div>
+
+        <!-- 3 & 4. Industry chart + Exposure trend -->
+        <div class="grid-2 mt-16">
+          <div class="card">
+            <div class="card-header">
+              <h3>🏭 Industry / Unit-wise Comparison</h3>
+              <span class="card-label">Est. Cumulative H₂S Exposure</span>
+            </div>
+            <canvas id="dashUnitChart" height="240"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>📈 Exposure Trend</h3>
+              <div class="trend-toggle">
+                <button class="trend-btn active" id="trendBtn14" onclick="switchTrend(14)">14 Days</button>
+                <button class="trend-btn" id="trendBtn30" onclick="switchTrend(30)">30 Days</button>
+              </div>
+            </div>
+            <canvas id="dashTrendChart" height="240"></canvas>
+          </div>
+        </div>
+
+        <!-- 5 & 6. Shift analysis + alerts -->
+        <div class="grid-3 mt-16">
+          <div class="card">
+            <div class="card-header">
+              <h3>🔄 Shift-wise Analysis</h3>
+              <span class="card-label">Morning · Evening · Night</span>
+            </div>
+            <canvas id="dashShiftChart" height="220"></canvas>
+          </div>
+          <div class="card span-2">
+            <div class="card-header">
+              <h3>⚠️ Recent Exposure Alerts</h3>
+              <button class="btn-link" onclick="showPage('adminAlerts')">View All →</button>
+            </div>
+            <div id="dashAlerts"></div>
+          </div>
+        </div>
+
+        <!-- 7. WORKER-WISE RECORDS TABLE -->
+        <div class="section-header mt-20">
+          <h3>👷 Worker-wise Exposure Records</h3>
+          <p>Showing records filtered by the cascade selection above</p>
+        </div>
+        <div class="card" style="padding:14px 16px">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="text" id="dashWorkerSearch" placeholder="🔍 Search Worker ID or Name..."
+              oninput="onDashTableSearch()"
+              style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none" />
+            <button class="btn-secondary" onclick="clearDashTableSearch()">✕ Clear Search</button>
+          </div>
+        </div>
+        <div class="card mt-8" id="dashWorkerTable"></div>
+
+      </div><!-- end adminDashboard -->
+
+      <!-- Admin Workers -->
+      <div id="adminWorkers" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h2>👷 Workers</h2>
+            <p>All registered workers and their exposure summary</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="filter-row">
+            <input type="text" id="workerSearch" placeholder="🔍 Search Worker ID or Name..." oninput="renderAdminWorkersTable()" />
+            <select id="workerFilterUnit" onchange="onWorkersUnitChange()">
+              <option value="">All Industries</option>
+              <option>Refinery</option><option>Gas Processing</option><option>Storage</option>
+              <option>Maintenance</option><option>Wastewater Treatment</option>
+            </select>
+            <select id="workerFilterArea" onchange="renderAdminWorkersTable()">
+              <option value="">All Areas</option>
+              <option>Area A</option><option>Area B</option><option>Area C</option><option>Area D</option>
+            </select>
+            <select id="workerFilterStatus" onchange="renderAdminWorkersTable()">
+              <option value="">All Status</option>
+              <option>Normal</option><option>Elevated</option><option>High</option>
+            </select>
+            <button class="btn-secondary" onclick="clearWorkerFilters()">↺ Reset Filters</button>
+          </div>
+        </div>
+        <div class="card mt-8" id="adminWorkersTable"></div>
+      </div>
+
+      <!-- Admin Industries -->
+      <div id="adminIndustries" class="page hidden">
+        <div class="page-header">
+          <h2>🏭 Industries / Units</h2>
+          <p>Estimated H₂S exposure comparison across processing units</p>
+        </div>
+        <div class="kpi-grid" id="industryKPIs"></div>
+        <div class="card mt-16">
+          <div class="card-header">
+            <h3>Industry / Unit-wise Estimated Cumulative H₂S Exposure</h3>
+          </div>
+          <canvas id="industryChart" height="260"></canvas>
+        </div>
+        <div class="grid-2 mt-16" id="industryCards"></div>
+      </div>
+
+      <!-- Admin Areas -->
+      <div id="adminAreas" class="page hidden">
+        <div class="page-header">
+          <h2>📍 Work Areas</h2>
+          <p>Click any area card to view full detail and exposure breakdown</p>
+        </div>
+        <div class="area-cards" id="areaCards"></div>
+      </div>
+
+      <!-- Area Detail Page -->
+      <div id="areaDetail" class="page hidden">
+        <div class="page-header">
+          <button class="btn-back" onclick="goBackFromAreaDetail()">← Back</button>
+          <h2 id="areaDetailTitle">Area Detail</h2>
+        </div>
+        <div class="kpi-grid" id="areaDetailKPIs"></div>
+        <div class="grid-2 mt-16">
+          <div class="card">
+            <div class="card-header"><h3>📈 Area Exposure Trend</h3></div>
+            <canvas id="areaDetailTrendChart" height="220"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>🔄 Shift-wise Exposure</h3></div>
+            <canvas id="areaDetailShiftChart" height="220"></canvas>
+          </div>
+        </div>
+        <div class="card mt-16">
+          <div class="card-header"><h3>👷 Workers in This Area</h3></div>
+          <div id="areaDetailWorkers"></div>
+        </div>
+        <div class="card mt-16">
+          <div class="card-header"><h3>📊 Worker Comparison</h3></div>
+          <canvas id="areaWorkerCompChart" height="220"></canvas>
+        </div>
+      </div>
+
+      <!-- Worker Detail Page -->
+      <div id="workerDetail" class="page hidden">
+        <div class="page-header">
+          <button class="btn-back" onclick="goBackFromWorkerDetail()">← Back</button>
+          <h2 id="workerDetailTitle">Worker Detail</h2>
+        </div>
+        <div id="workerDetailContent"></div>
+      </div>
+
+      <!-- Admin Exposure Monitoring -->
+      <div id="adminExposure" class="page hidden">
+        <div class="page-header">
+          <h2>🔬 Exposure Monitoring</h2>
+          <p>Drill down: Company → Industry / Unit → Work Area → Shift → Worker → Date Range</p>
+        </div>
+
+        <!-- Cascade hint -->
+        <div class="cascade-hint">
+          💡 Selecting an Industry will automatically restrict the available Work Areas. Each filter narrows the next.
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>🔎 Filter Exposure Records</h3>
+            <div id="expActiveCount" class="chart-context-label">All records</div>
+          </div>
+          <div class="filter-grid">
+            <div class="form-group">
+              <label>🏢 Company</label>
+              <select id="expCompany"><option>MRPL</option></select>
+            </div>
+            <div class="form-group">
+              <label>🏭 Industry / Unit</label>
+              <select id="expUnit" onchange="onExpUnitChange()">
+                <option value="">All Units</option>
+                <option>Refinery</option><option>Gas Processing</option><option>Storage</option>
+                <option>Maintenance</option><option>Wastewater Treatment</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>📍 Work Area</label>
+              <select id="expArea" onchange="onExpAreaChange()">
+                <option value="">All Areas</option>
+                <option>Area A</option><option>Area B</option><option>Area C</option><option>Area D</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>🕐 Shift</label>
+              <select id="expShift" onchange="renderExposureTable()">
+                <option value="">All Shifts</option>
+                <option>Morning</option><option>Evening</option><option>Night</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>👷 Worker (optional)</label>
+              <select id="expWorker" onchange="renderExposureTable()">
+                <option value="">All Workers</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>🟢 Risk Status</label>
+              <select id="expStatus" onchange="renderExposureTable()">
+                <option value="">All Status</option>
+                <option>Normal</option><option>Elevated</option><option>High</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>📅 Date From</label>
+              <input type="date" id="expDateFrom" onchange="renderExposureTable()" />
+            </div>
+            <div class="form-group">
+              <label>📅 Date To</label>
+              <input type="date" id="expDateTo" onchange="renderExposureTable()" />
+            </div>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-apply" onclick="renderExposureTable()">🔍 Apply Filters</button>
+            <button class="btn-secondary" onclick="clearExposureFilters()">↺ Reset All</button>
+          </div>
+        </div>
+
+        <!-- Live KPI strip for current filter -->
+        <div class="kpi-grid mt-16" id="expKPIs"></div>
+
+        <div class="card mt-16" id="exposureTableContainer"></div>
+      </div>
+
+      <!-- Admin Analytics -->
+      <div id="adminAnalytics" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h2>📊 Analytics & Insights</h2>
+            <p>Interactive estimated H₂S exposure analytics — apply filters to update all charts</p>
+          </div>
+        </div>
+
+        <!-- Analytics global filter bar -->
+        <div class="card" style="padding:14px 18px">
+          <div class="inline-filters">
+            <div>
+              <label>Industry / Unit</label>
+              <select id="anlUnit" onchange="onAnlUnitChange()">
+                <option value="">All Units</option>
+                <option>Refinery</option><option>Gas Processing</option>
+                <option>Storage</option><option>Maintenance</option><option>Wastewater Treatment</option>
+              </select>
+            </div>
+            <div>
+              <label>Work Area</label>
+              <select id="anlArea" onchange="refreshAnalytics()">
+                <option value="">All Areas</option>
+                <option>Area A</option><option>Area B</option><option>Area C</option><option>Area D</option>
+              </select>
+            </div>
+            <div>
+              <label>Shift</label>
+              <select id="anlShift" onchange="refreshAnalytics()">
+                <option value="">All Shifts</option>
+                <option>Morning</option><option>Evening</option><option>Night</option>
+              </select>
+            </div>
+            <div>
+              <label>Date From</label>
+              <input type="date" id="anlDateFrom" onchange="refreshAnalytics()" />
+            </div>
+            <div>
+              <label>Date To</label>
+              <input type="date" id="anlDateTo" onchange="refreshAnalytics()" />
+            </div>
+            <div style="align-self:flex-end">
+              <button class="btn-apply" onclick="refreshAnalytics()">🔄 Refresh Charts</button>
+            </div>
+            <div style="align-self:flex-end">
+              <button class="btn-secondary" onclick="resetAnalyticsFilters()">↺ Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2 mt-16">
+          <div class="card">
+            <div class="card-header">
+              <h3>A. Area-wise Exposure (Avg / Max)</h3>
+              <span id="anlAreaLabel" class="chart-context-label">All data</span>
+            </div>
+            <canvas id="analyticsAreaChart" height="250"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>B. Industry / Unit-wise Comparison</h3>
+              <span id="anlUnitLabel" class="chart-context-label">All data</span>
+            </div>
+            <canvas id="analyticsUnitChart" height="250"></canvas>
+          </div>
+        </div>
+        <div class="grid-2 mt-16">
+          <div class="card">
+            <div class="card-header">
+              <h3>C. Exposure Trend Over Time</h3>
+              <span id="anlTrendLabel" class="chart-context-label">Last 14 days</span>
+            </div>
+            <canvas id="analyticsTrendChart" height="250"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>D. Shift-wise Analysis</h3>
+              <span id="anlShiftLabel" class="chart-context-label">All shifts</span>
+            </div>
+            <canvas id="analyticsShiftChart" height="250"></canvas>
+          </div>
+        </div>
+        <div class="card mt-16">
+          <div class="card-header">
+            <h3>E. Worker-wise Exposure History</h3>
+            <select id="analyticsWorkerSelect" onchange="renderWorkerAnalyticsChart()"
+              style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;min-width:220px"></select>
+          </div>
+          <canvas id="analyticsWorkerChart" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- Admin Alerts -->
+      <div id="adminAlerts" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h2>⚠️ Exposure Alerts</h2>
+            <p>Workers with elevated or high estimated H₂S exposure — cascading filters</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="inline-filters">
+            <div>
+              <label>Risk Status</label>
+              <select id="alertFilterStatus" onchange="renderAlerts()">
+                <option value="">All Alerts</option>
+                <option>Elevated</option><option>High</option>
+              </select>
+            </div>
+            <div>
+              <label>Industry / Unit</label>
+              <select id="alertFilterUnit" onchange="onAlertUnitChange()">
+                <option value="">All Units</option>
+                <option>Refinery</option><option>Gas Processing</option><option>Storage</option>
+                <option>Maintenance</option><option>Wastewater Treatment</option>
+              </select>
+            </div>
+            <div>
+              <label>Work Area</label>
+              <select id="alertFilterArea" onchange="renderAlerts()">
+                <option value="">All Areas</option>
+                <option>Area A</option><option>Area B</option><option>Area C</option><option>Area D</option>
+              </select>
+            </div>
+            <div>
+              <label>Shift</label>
+              <select id="alertFilterShift" onchange="renderAlerts()">
+                <option value="">All Shifts</option>
+                <option>Morning</option><option>Evening</option><option>Night</option>
+              </select>
+            </div>
+            <div>
+              <label>Date From</label>
+              <input type="date" id="alertDateFrom" onchange="renderAlerts()" />
+            </div>
+            <div>
+              <label>Date To</label>
+              <input type="date" id="alertDateTo" onchange="renderAlerts()" />
+            </div>
+            <div style="align-self:flex-end">
+              <button class="btn-secondary" onclick="clearAlertFilters()">↺ Reset</button>
+            </div>
+          </div>
+        </div>
+        <div id="alertsContainer" class="mt-16"></div>
+      </div>
+
+      <!-- Admin Reports -->
+      <div id="adminReports" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h2>📄 Report Generation</h2>
+            <p>Generate occupational health and safety reports — cascading filters · Export PDF or CSV</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>⚙️ Configure Report Parameters</h3>
+            <span class="cascade-hint" style="margin:0;padding:5px 12px;font-size:11.5px">💡 Industry selection filters the Work Area list</span>
+          </div>
+          <div class="filter-grid">
+            <div class="form-group">
+              <label>📅 Date From</label>
+              <input type="date" id="reportDateFrom" />
+            </div>
+            <div class="form-group">
+              <label>📅 Date To</label>
+              <input type="date" id="reportDateTo" />
+            </div>
+            <div class="form-group">
+              <label>🏭 Industry / Unit</label>
+              <select id="reportUnit" onchange="onReportUnitChange()">
+                <option value="">All Units</option>
+                <option>Refinery</option><option>Gas Processing</option><option>Storage</option>
+                <option>Maintenance</option><option>Wastewater Treatment</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>📍 Work Area</label>
+              <select id="reportArea" onchange="onReportAreaChange()">
+                <option value="">All Areas</option>
+                <option>Area A</option><option>Area B</option><option>Area C</option><option>Area D</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>🕐 Shift</label>
+              <select id="reportShift">
+                <option value="">All Shifts</option>
+                <option>Morning</option><option>Evening</option><option>Night</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>👷 Worker (optional)</label>
+              <select id="reportWorkerSelect">
+                <option value="">All Workers</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Worker ID (manual)</label>
+              <input type="text" id="reportWorker" placeholder="e.g. W101 (overrides above)" />
+            </div>
+            <div class="form-group">
+              <label>🟢 Risk Status</label>
+              <select id="reportStatus">
+                <option value="">All Status</option>
+                <option>Normal</option><option>Elevated</option><option>High</option>
+              </select>
+            </div>
+          </div>
+          <div class="report-actions">
+            <button class="btn-apply" onclick="generateReport()">📊 Preview Report</button>
+            <button class="btn-success" onclick="exportPDF()">📥 Export PDF</button>
+            <button class="btn-secondary" onclick="exportCSV()">📥 Export CSV</button>
+            <button class="btn-secondary" onclick="clearReportFilters()">↺ Reset</button>
+          </div>
+        </div>
+        <div id="reportPreview" class="mt-16"></div>
+      </div>
+
+      <!-- Admin Settings -->
+      <div id="adminSettings" class="page hidden">
+        <div class="page-header">
+          <h2>⚙️ Settings</h2>
+          <p>System configuration, thresholds and device information</p>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><h3>🎚️ Exposure Risk Thresholds</h3></div>
+            <div class="settings-form">
+              <div class="form-group">
+                <label>Normal — Upper Limit (ppm·hr)</label>
+                <input type="number" value="5" class="settings-input" id="threshNormal" min="1" max="50" step="0.5" />
+                <small class="field-hint">🟢 Readings below this value → <strong>Normal</strong></small>
+              </div>
+              <div class="form-group">
+                <label>Elevated — Upper Limit (ppm·hr)</label>
+                <input type="number" value="10" class="settings-input" id="threshElevated" min="1" max="50" step="0.5" />
+                <small class="field-hint">🟡 Between Normal limit and this → <strong>Elevated</strong></small>
+              </div>
+              <div class="form-group">
+                <label>High / Review Required — Threshold (ppm·hr)</label>
+                <input type="number" value="10" class="settings-input" id="threshHigh" min="1" max="50" step="0.5" />
+                <small class="field-hint">🔴 Above this value → <strong>High / Review Required</strong></small>
+              </div>
+              <div class="threshold-preview" id="thresholdPreview"></div>
+              <div style="display:flex;gap:8px;margin-top:16px">
+                <button class="btn-primary" onclick="saveThresholds()">💾 Save &amp; Apply Thresholds</button>
+                <button class="btn-secondary" onclick="resetThresholds()">↺ Reset Defaults</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>ℹ️ System Information</h3></div>
+            <div class="info-list">
+              <div class="info-row"><span>Company</span><strong>MRPL (Mangalore Refinery &amp; Petrochemicals)</strong></div>
+              <div class="info-row"><span>System</span><strong>SafeTrack Pro v1.0</strong></div>
+              <div class="info-row"><span>Dosimeter Type</span><strong>Passive Colorimetric Wristband</strong></div>
+              <div class="info-row"><span>Reading Method</span><strong>Smartphone AI Image Analysis</strong></div>
+              <div class="info-row"><span>Data Type</span><strong>Estimated Cumulative H₂S Exposure</strong></div>
+              <div class="info-row"><span>Data Status</span><strong style="color:#d97706">⚠ Prototype / Demo Data</strong></div>
+              <div class="info-row"><span>Total Records</span><strong id="settingsTotalRecords">—</strong></div>
+              <div class="info-row"><span>Workers Registered</span><strong id="settingsTotalWorkers">—</strong></div>
+              <div class="info-row"><span>Compliance</span><strong style="color:#b91c1c">Not DGMS / OISD certified</strong></div>
+            </div>
+            <div class="disclaimer-box mt-16">
+              <strong>⚠ Important Disclaimer</strong><br>
+              This system provides <em>estimated cumulative H₂S exposure</em> data derived from passive colorimetric dosimeter strip analysis using smartphone image processing. It is a prototype research tool and does NOT replace certified real-time H₂S gas detectors. Data should be used as a supplementary occupational health reference only.
+            </div>
+          </div>
+        </div>
+
+        <!-- Data summary card -->
+        <div class="card mt-16">
+          <div class="card-header"><h3>📊 Current Data Summary</h3></div>
+          <div class="kpi-grid" id="settingsDataSummary"></div>
+        </div>
+      </div>
+
+    </div><!-- end page-container -->
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
