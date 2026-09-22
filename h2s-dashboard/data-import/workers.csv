@@ -1,0 +1,46 @@
+id,name,areaCode,shift,department
+W-1101,Rajesh Kumar,SRU,A,Sulphur Block Operations
+W-1104,Priya Sharma,ARU,B,Sulphur Block Operations
+W-1107,Arun Nair,SWS,C,Sulphur Block Operations
+W-1110,Suresh Menon,DCU,A,Process Operations
+W-1113,Deepa Pillai,HCU,B,Process Operations
+W-1116,Mohan Rao,DHDT,C,Process Operations
+W-1119,Kavya Reddy,CDU-III,A,Process Operations
+W-1122,Sanjay Verma,ETP,B,Environment Management
+W-1125,Anjali Singh,TF,C,Storage & Despatch
+W-1128,Ravi Krishnan,SRU,A,Sulphur Block Operations
+W-1131,Meena Iyer,ARU,B,Sulphur Block Operations
+W-1134,Dinesh Patel,SWS,C,Sulphur Block Operations
+W-1137,Latha Bose,DCU,A,Process Operations
+W-1140,Venkat Shetty,HCU,B,Process Operations
+W-1143,Pooja Gupta,DHDT,C,Process Operations
+W-1146,Kiran Hegde,CDU-III,A,Process Operations
+W-1149,Ramesh Prabhu,ETP,B,Environment Management
+W-1152,Sunita Bhat,TF,C,Storage & Despatch
+W-1155,Prakash Kamath,SRU,A,Sulphur Block Operations
+W-1158,Sudha Acharya,ARU,B,Sulphur Block Operations
+W-1161,Arjun Rai,SWS,C,Sulphur Block Operations
+W-1164,Neha Shenoy,DCU,A,Process Operations
+W-1167,Vijay Naidu,HCU,B,Process Operations
+W-1170,Rekha Yadav,DHDT,C,Process Operations
+W-1173,Harish Pai,CDU-III,A,Process Operations
+W-1176,Geeta Kumar,ETP,B,Environment Management
+W-1179,Naveen Sharma,TF,C,Storage & Despatch
+W-1182,Shalini Nair,SRU,A,Sulphur Block Operations
+W-1185,Ashok Menon,ARU,B,Sulphur Block Operations
+W-1188,Divya Pillai,SWS,C,Sulphur Block Operations
+W-1191,Manoj Rao,DCU,A,Process Operations
+W-1194,Swathi Reddy,HCU,B,Process Operations
+W-1197,Girish Verma,DHDT,C,Process Operations
+W-1200,Lakshmi Singh,CDU-III,A,Process Operations
+W-1203,Rahul Krishnan,ETP,B,Environment Management
+W-1206,Nisha Iyer,TF,C,Storage & Despatch
+W-1209,Sathish Patel,SRU,A,Sulphur Block Operations
+W-1212,Usha Bose,ARU,B,Sulphur Block Operations
+W-1215,Vinod Shetty,SWS,C,Sulphur Block Operations
+W-1218,Anita Gupta,DCU,A,Process Operations
+W-1221,Pradeep Hegde,HCU,B,Process Operations
+W-1224,Sneha Prabhu,DHDT,C,Process Operations
+W-1227,Ganesh Bhat,CDU-III,A,Process Operations
+W-1230,Bhavya Kamath,ETP,B,Environment Management
+W-1233,Sudhir Acharya,TF,C,Storage & Despatch
