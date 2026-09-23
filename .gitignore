@@ -7,7 +7,7 @@ node_modules/
 package-lock.json
 
 # Runtime records and credentials — never committed
-h2s-dashboard/store/
+h2s-dashboard
 
 # Reference material, not part of the project
 h2s-dashboard/reference-*.pdf
