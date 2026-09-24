@@ -17,24 +17,99 @@ const State = {
   error:    null,
 };
 
-async function request(route, options = {}) {
-  const headers = { ...(options.headers || {}) };
-  if (State.token) headers.Authorization = `Bearer ${State.token}`;
-  if (options.body) headers['Content-Type'] = 'application/json';
+/* ---- STATIC DEPLOYMENT ----
+   This build is published to a static host, so there is no /api to
+   call. The records under data/ were produced by the SenseWear server
+   itself — its own /api/config, /workers, /sessions and /alerts
+   responses, written out verbatim — so every figure on screen is the
+   one the server computed from the badge readings. Nothing is
+   generated here; this layer only selects and re-dates.
 
-  let response;
-  try {
-    response = await fetch(`/api/${route}`, { ...options, headers });
-  } catch {
-    throw new Error('Cannot reach the SenseWear server. Check that it is running.');
+   Sessions and alerts carry a plant-local date plus minute offsets
+   within that day, never absolute timestamps, so rolling the archive
+   forward is a whole-day rename: the same measurements at the same
+   clock times, on a window ending today. That keeps every reporting
+   period populated whenever the console is opened. */
+const DEMO = {
+  files: { config: 'data/config.json', workers: 'data/workers.json',
+           sessions: 'data/sessions.json', alerts: 'data/alerts.json' },
+  cache: {},
+  shiftDays: null,
+  officer: { id: 'SAFE01', name: 'S. Murthy', title: 'Chief Safety Officer' },
+  password: '12345678',
+  acks: JSON.parse(sessionStorage.getItem('sensewear.acks') || '{}'),
+};
+
+async function demoLoad(name) {
+  if (!DEMO.cache[name]) {
+    const response = await fetch(DEMO.files[name], { cache: 'no-cache' });
+    if (!response.ok) throw new Error(`Records unavailable (${DEMO.files[name]}).`);
+    DEMO.cache[name] = await response.json();
+  }
+  return DEMO.cache[name];
+}
+
+/* Whole days between the newest recorded day and today. Computed once
+   from the archive itself, so the roll is the same for every route. */
+async function demoShift() {
+  if (DEMO.shiftDays === null) {
+    const sessions = await demoLoad('sessions');
+    const newest = sessions.reduce((a, s) => (s.date > a ? s.date : a), sessions[0].date);
+    const days = Math.round((Date.parse(`${todayISO()}T00:00:00Z`) - Date.parse(`${newest}T00:00:00Z`)) / 86400000);
+    DEMO.shiftDays = Math.max(0, days);
+  }
+  return DEMO.shiftDays;
+}
+
+/* Row ids embed the date ("W-1101|2026-09-23|limit"), and alert ids are
+   what an acknowledgement is filed against, so they move with it. */
+function demoRoll(rows, days) {
+  if (!days) return rows;
+  return rows.map(row => {
+    const date = addDays(row.date, days);
+    return { ...row, date, id: row.id ? row.id.split('|').map(p => (p === row.date ? date : p)).join('|') : row.id };
+  });
+}
+
+function demoRange(rows, query) {
+  const from = query.get('from'), to = query.get('to');
+  return rows.filter(r => (!from || r.date >= from) && (!to || r.date <= to));
+}
+
+async function request(route, options = {}) {
+  const [path, search] = route.split('?');
+  const query = new URLSearchParams(search || '');
+  const sent  = options.body ? JSON.parse(options.body) : {};
+
+  if (path === 'config') return demoLoad('config');
+
+  if (path === 'session') {
+    if (String(sent.id).toUpperCase() !== DEMO.officer.id || sent.password !== DEMO.password) {
+      throw new Error('Incorrect officer ID or password.');
+    }
+    return { token: 'demo', officer: DEMO.officer };
   }
 
-  let payload = {};
-  try { payload = await response.json(); } catch { /* empty body */ }
+  if (!State.token) { signOut(); throw new Error('Sign in to continue.'); }
 
-  if (response.status === 401 && State.token) { signOut(); throw new Error('Your session expired. Sign in again.'); }
-  if (!response.ok) throw new Error(payload.error || `Request failed (${response.status}).`);
-  return payload;
+  if (path === 'workers') return demoLoad('workers');
+
+  if (path === 'sessions' || path === 'alerts') {
+    const rows = demoRoll(await demoLoad(path), await demoShift());
+    if (path === 'alerts') {
+      return demoRange(rows.map(a => ({ ...a, acknowledged: DEMO.acks[a.id] || null })), query);
+    }
+    return demoRange(rows, query);
+  }
+
+  if (path === 'alerts/acknowledge') {
+    if (!sent.id) throw new Error('An alert id is required.');
+    DEMO.acks[sent.id] = { by: DEMO.officer.name, at: new Date().toISOString() };
+    sessionStorage.setItem('sensewear.acks', JSON.stringify(DEMO.acks));
+    return { id: sent.id, acknowledged: DEMO.acks[sent.id] };
+  }
+
+  throw new Error(`No such endpoint: ${path}`);
 }
 
 const Api = {
