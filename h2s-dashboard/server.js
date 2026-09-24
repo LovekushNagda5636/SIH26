@@ -94,6 +94,34 @@ function plantTime(iso) {
 function localDate(iso) { return plantTime(iso).date; }
 function minutesOf(iso) { return plantTime(iso).minutes; }
 
+/* This console is published for evaluation, so its sample records must
+   not slide out of the reporting windows as the calendar moves on. The
+   stored readings are rolled forward by whole plant days until the most
+   recent one falls on today. Whole days keep every reading at the same
+   clock time, so shift boundaries, TWA windows and the day/night pattern
+   survive intact — the measurements are re-dated, never invented. The
+   hourly re-check keeps a long-lived instance current past midnight.
+   Set DEMO_ROLL=off to serve the records at their recorded dates. */
+function rollReadingsToToday() {
+  if (process.env.DEMO_ROLL === 'off') return;
+
+  const readings = read('readings', []);
+  if (!readings.length) return;
+
+  const DAY    = 86400000;
+  const latest = readings.reduce((a, r) => (r.at > a ? r.at : a), readings[0].at);
+  const today  = localDate(new Date().toISOString());
+  const days   = Math.round(
+    (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${localDate(latest)}T00:00:00Z`)) / DAY);
+  if (days <= 0) return;
+
+  write('readings', readings.map(r => ({ ...r, at: new Date(Date.parse(r.at) + days * DAY).toISOString() })));
+  console.log(`Sample records rolled forward ${days} day(s); latest reading now ${today}.`);
+}
+
+rollReadingsToToday();
+setInterval(rollReadingsToToday, 60 * 60 * 1000);
+
 function buildSessions(readings, workers) {
   const byKey = new Map();
 
