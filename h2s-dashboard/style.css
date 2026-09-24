@@ -1071,3 +1071,36 @@ body.contrast .block h2 { background: #000; color: #FFD800; }
   .tiles { grid-template-columns: 1fr; }
   .hero-stats { gap: 20px; }
 }
+
+/* Evaluation credentials shown on the login card. This deployment is a
+   public demonstration, so the demo account is published deliberately. */
+.login-demo {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--wash, #f4f6f9);
+  border: 1px dashed var(--line-2);
+}
+.login-demo-title {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.login-demo-creds {
+  font-size: 12.5px;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.login-demo-creds b {
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 13px;
+  color: var(--navy);
+}
+.login-demo-btn {
+  background: transparent;
+  border: 1px solid var(--navy);
+  color: var(--navy);
+  font-size: 12.5px;
+}
+.login-demo-btn:hover { background: var(--navy); color: #fff; }
