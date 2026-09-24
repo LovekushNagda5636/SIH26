@@ -78,11 +78,6 @@
           Exposure captured by SenseWear passive badges at registered establishments,
           measured against the limits prescribed under the Factories Act, 1948.
         </p>
-        <dl class="hero-stats">
-          <div><dt>Permissible limit</dt><dd>10 <span>ppm</span></dd></div>
-          <div><dt>Short term limit</dt><dd>15 <span>ppm</span></dd></div>
-          <div><dt>Action level</dt><dd>5 <span>ppm</span></dd></div>
-        </dl>
       </div>
 
       <form id="signInForm" class="login-card" novalidate>
@@ -98,6 +93,14 @@
         </div>
         <p id="signInError" class="form-error" hidden></p>
         <button type="submit" id="signInBtn" class="btn btn-primary btn-block">Login</button>
+        <div class="login-demo">
+          <p class="login-demo-title">Evaluation access</p>
+          <p class="login-demo-creds">Officer ID <b>SAFE01</b> &nbsp;·&nbsp; Password <b>12345678</b></p>
+          <button type="button" class="btn btn-block login-demo-btn"
+                  onclick="signInId.value='SAFE01';signInPass.value='12345678';signInForm.requestSubmit();">
+            Demo Login
+          </button>
+        </div>
         <p class="login-help">Sign-in activity and alert acknowledgements are recorded against your account.</p>
       </form>
     </div>
